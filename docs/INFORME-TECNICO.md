@@ -23,31 +23,31 @@ El frontend fue diseñado utilizando un patrón de Arquitectura por Capas altame
 
 El diagrama muestra cómo está organizado el frontend de SmartLogix en capas, donde cada capa tiene una responsabilidad específica y se comunica solo con la capa inmediatamente inferior.
 
-### Capa 1 — Router y Layouts
+### Capa 1 - Router y Layouts
 
 App.jsx es el punto de entrada de toda la app. Decide qué renderizar según la URL. Tiene dos caminos: si el usuario no está autenticado, renderiza Login.jsx o Register.jsx directamente. Si está autenticado, renderiza DashboardLayout.jsx, que actúa como el "marco" visual (menú lateral, header, etc.) dentro del cual viven todas las páginas protegidas.
 
-### Capa 2 — Pages (Views)
+### Capa 2 - Pages (Views)
 
 Son las 5 pantallas de la aplicación. Login.jsx y Register.jsx vienen directo del router. Inventory.jsx, Order.jsx y Shipments.jsx viven dentro del layout del dashboard. Cada página es responsable de lo que el usuario ve y de coordinar los datos que necesita mostrar.
 
-### Capa 3 — Components (UI) + Hooks (State)
+### Capa 3 - Components (UI) + Hooks (State)
 
 Aquí hay dos sublayers paralelas:
 
 #### Components
 
-InventoryForm.jsx y OrderForm.jsx son componentes reutilizables de formulario. La línea punteada desde las páginas indica una dependencia opcional — la página los usa pero no siempre los necesita activos.
+InventoryForm.jsx y OrderForm.jsx son componentes reutilizables de formulario. La línea punteada desde las páginas indica una dependencia opcional - la página los usa pero no siempre los necesita activos.
 
 #### Hooks
 
 useInventory.js, useOrders.js y useShipments.js encapsulan el estado y la lógica de cada dominio. Cuando una página necesita datos o quiere ejecutar una acción, llama al hook correspondiente en lugar de manejar todo eso internamente.
 
-### Capa 4 — Services (Business Logic)
+### Capa 4 - Services (Business Logic)
 
 Los servicios son el "cerebro" de cada dominio. Reciben instrucciones desde los hooks (o directamente desde las páginas de auth) y deciden cómo procesarlas: validaciones, transformaciones de datos, manejo de errores de negocio. authService.js lo usan tanto Login como Register. Los otros tres servicios los usan sus hooks respectivos.
 
-### Capa 5 — API Clients (Data Fetch)
+### Capa 5 - API Clients (Data Fetch)
 
 Son los traductores entre la lógica del frontend y el protocolo HTTP. Cada servicio tiene su propio cliente de API: authApi.js, inventoryApi.js, orderApi.js y shipmentApi.js. Saben exactamente qué endpoints llamar, con qué parámetros, y cómo formatear el request.
 
@@ -59,7 +59,7 @@ Es el único punto que realmente hace las llamadas HTTP. Todos los API clients l
 
 Es el primer punto de entrada al backend. Recibe todos los requests del frontend vía HTTP REST con JSON, autenticados con JWT. Desde ahí distribuye a los microservicios correspondientes (inventario, órdenes, envíos, auth), aunque eso ya es arquitectura de backend y no se muestra en este diagrama.
 
-El flujo completo de una acción típica — por ejemplo, el usuario carga la página de inventario:
+El flujo completo de una acción típica - por ejemplo, el usuario carga la página de inventario:
 
 `Inventory.jsx` llama a → `useInventory.js` que llama a → `inventoryService.js` que llama a → `inventoryApi.js` que usa → `httpClient.js` que hace GET al API Gateway que responde → → con JSON y los datos suben de vuelta por la misma cadena hasta pintarse en → pantalla.
 

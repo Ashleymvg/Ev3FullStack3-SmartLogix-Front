@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { orderService } from "../service/orderService";
 import { inventoryService } from "../service/inventoryService";
+import { usePoints } from "../hooks/usePoints";
 
 function OrderPage() {
     const [orders, setOrders] = useState([]);
@@ -14,6 +15,15 @@ function OrderPage() {
         customerName: "", customerEmail: "", shippingAddress: "", lines: [{ sku: "", quantity: 1, unitPrice: 0 }]
     });
     const [message, setMessage] = useState("");
+
+    // ── LogixPoints ──────────────────────────────────────────────
+    const { points: myPoints, loading: pointsLoading, refetch: refetchPoints } = usePoints();
+    const [useLogixPoints, setUseLogixPoints] = useState(false);  // nombre cambiado para evitar conflicto
+
+    const formTotal = form.lines.reduce((acc, l) => acc + (Number(l.unitPrice) * Number(l.quantity || 1)), 0);
+    const pointsDiscount = useLogixPoints ? Math.min(myPoints, formTotal) : 0;
+    const finalTotal = Math.max(0, formTotal - pointsDiscount);
+    // ─────────────────────────────────────────────────────────────
 
     useEffect(() => {
         let isMounted = true;
@@ -49,23 +59,22 @@ function OrderPage() {
     }
 
     function handleLineChange(index, field, value) {
-    const newLines = form.lines.map((line, i) => {
-        if (i === index) {
-            if (field === "sku") {
-                // Buscamos el ítem seleccionado en la lista cargada de inventario
-                const selectedProduct = inventory.find(item => item.sku === value);
-                return { 
-                    ...line, 
-                    sku: value, 
-                    unitPrice: selectedProduct ? selectedProduct.price : 0 
-                };
+        const newLines = form.lines.map((line, i) => {
+            if (i === index) {
+                if (field === "sku") {
+                    const selectedProduct = inventory.find(item => item.sku === value);
+                    return { 
+                        ...line, 
+                        sku: value, 
+                        unitPrice: selectedProduct ? selectedProduct.price : 0 
+                    };
+                }
+                return { ...line, [field]: value };
             }
-            return { ...line, [field]: value };
-        }
-        return line;
-    });
-    setForm({ ...form, lines: newLines });
-}
+            return line;
+        });
+        setForm({ ...form, lines: newLines });
+    }
 
     function addLine() { setForm({ ...form, lines: [...form.lines, { sku: "", quantity: 1, unitPrice: 0 }] }); }
     function removeLine(index) { setForm({ ...form, lines: form.lines.filter((_, i) => i !== index) }); }
@@ -74,10 +83,24 @@ function OrderPage() {
         e.preventDefault();
         setMessage("Creando pedido y verificando stock con el almacén...");
         try {
-            const response = await orderService.createNewOrder(form);
-            setMessage("¡Pedido enviado correctamente al sistema!");
+            const response = await orderService.createNewOrder({
+                ...form,
+                usePoints: useLogixPoints && myPoints > 0,
+                pointsToUse: useLogixPoints ? Math.min(myPoints, formTotal) : 0,
+            });
+
+            let successMsg = "¡Pedido enviado correctamente al sistema!";
+            if (response?.pointsRedeemed > 0) {
+                successMsg += ` Se descontaron ${response.pointsRedeemed.toLocaleString('es-CL')} LogixPoints.`;
+            }
+            if (response?.pointsEarned > 0) {
+                successMsg += ` Ganaste ${response.pointsEarned.toLocaleString('es-CL')} LogixPoints nuevos.`;
+            }
+            setMessage(successMsg);
+            setUseLogixPoints(false);
             setForm({ customerName: "", customerEmail: "", shippingAddress: "", lines: [{ sku: "", quantity: 1, unitPrice: 0 }] });
             await reloadData();
+            await refetchPoints();
             if (response && response.orderNumber) handleSelectOrder(response.orderNumber);
         } catch (err) { setMessage("Error: " + err.message); }
     }
@@ -106,10 +129,43 @@ function OrderPage() {
                                     ))}
                                 </select>
                                 <input type="number" placeholder="Cant" min="1" value={line.quantity} onChange={(e) => handleLineChange(index, "quantity", e.target.value)} style={{ width: '60px', padding: '8px' }} required />
-                                <input type="text" placeholder="Precio" value={line.unitPrice ? `$${Number(line.unitPrice).toLocaleString()}` : ""} readOnly style={{ width: '100px', padding: '8px', backgroundColor: '#e9ecef', color: '#495057', border: '1px solid #ced4da', borderRadius: '4px',cursor: 'not-allowed',fontWeight: 'bold'}} required />
+                                <input type="text" placeholder="Precio" value={line.unitPrice ? `$${Number(line.unitPrice).toLocaleString()}` : ""} readOnly style={{ width: '100px', padding: '8px', backgroundColor: '#e9ecef', color: '#495057', border: '1px solid #ced4da', borderRadius: '4px', cursor: 'not-allowed', fontWeight: 'bold'}} required />
                                 <button type="button" onClick={() => removeLine(index)} disabled={form.lines.length === 1} style={{ backgroundColor: '#dc3545', color: '#fff', padding: '8px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>X</button>
                             </div>
                         ))}
+
+                        {/* ── LogixPoints: checkbox de canje ────────────────── */}
+                        {myPoints > 0 && formTotal > 0 && (
+                            <div style={{
+                                marginTop: '8px',
+                                padding: '12px',
+                                background: 'linear-gradient(135deg, #f5f0ff, #ede9fe)',
+                                border: '1px solid #c084fc',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '6px',
+                            }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '600', color: '#6d28d9' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={useLogixPoints}
+                                        onChange={(e) => setUseLogixPoints(e.target.checked)}
+                                        style={{ width: '16px', height: '16px', accentColor: '#7c3aed' }}
+                                    />
+                                    Usar mis {pointsLoading ? '...' : myPoints.toLocaleString('es-CL')} LogixPoints para descontar ${pointsLoading ? '...' : Math.min(myPoints, formTotal).toLocaleString('es-CL')}
+                                </label>
+                                {useLogixPoints && (
+                                    <div style={{ fontSize: '13px', color: '#7c3aed', paddingLeft: '24px' }}>
+                                        <span>Subtotal: </span>
+                                        <span style={{ textDecoration: 'line-through', color: '#9ca3af' }}>${formTotal.toLocaleString('es-CL')}</span>
+                                        <span style={{ marginLeft: '8px', fontWeight: 'bold' }}>→ Total final: ${finalTotal.toLocaleString('es-CL')}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {/* ─────────────────────────────────────────────────── */}
+
                         <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                             <button type="button" onClick={addLine} style={{ backgroundColor: '#6c757d', color: '#fff', cursor: 'pointer', border: 'none', padding: '10px 15px', borderRadius: '4px' }}>+ Añadir Producto</button>
                             <button type="submit" style={{ backgroundColor: '#007bff', color: '#fff', cursor: 'pointer', border: 'none', padding: '10px 15px', borderRadius: '4px' }}>Generar Orden</button>
@@ -137,7 +193,7 @@ function OrderPage() {
                 </div>
             </section>
 
-            {/* PANEL DERECHO  */}
+            {/* PANEL DERECHO */}
             <section style={{ flex: '1 1 55%', minWidth: 0, border: '1px solid #ddd', borderRadius: '8px', padding: '25px', backgroundColor: '#fafafa', textAlign: 'left', boxSizing: 'border-box' }}>
                 {!selectedOrder ? (
                     <div style={{ textAlign: 'center', marginTop: '100px' }}>
@@ -155,6 +211,17 @@ function OrderPage() {
                                 </span>
                             </p>
                             <p><strong>Total Facturado:</strong> ${Number(selectedOrder.totalAmount || 0).toLocaleString()}</p>
+
+                            {selectedOrder.pointsRedeemed > 0 && (
+                                <p style={{ color: '#7c3aed', fontWeight: '600' }}>
+                                    LogixPoints usados: -{selectedOrder.pointsRedeemed.toLocaleString('es-CL')} pts (descuento ${selectedOrder.pointsRedeemed.toLocaleString('es-CL')})
+                                </p>
+                            )}
+                            {selectedOrder.pointsEarned > 0 && (
+                                <p style={{ color: '#059669', fontWeight: '600' }}>
+                                    🎁 LogixPoints ganados: +{selectedOrder.pointsEarned.toLocaleString('es-CL')} pts
+                                </p>
+                            )}
                             
                             <p><strong>Código de Tracking:</strong> 
                                 {selectedOrder.trackingCode ? (
@@ -166,7 +233,7 @@ function OrderPage() {
 
                             {selectedOrder.status === 'FAILED' && (
                                 <div style={{ color: '#856404', background: '#fff3cd', border: '1px solid #ffeeba', padding: '15px', borderRadius: '6px', marginTop: '20px', fontSize: '14px', lineHeight: '1.6' }}>
-                                    💡 <strong>Flujo de Excepción Logística:</strong> El pedido fue aprobado y los artículos ya están **reservados** en el inventario. Sin embargo, el transportista automático no está respondiendo. Este caso requiere que vayas al módulo de <strong>Envíos</strong> para realizar una <strong>Asignación Manual</strong>.
+                                    💡 <strong>Flujo de Excepción Logística:</strong> El pedido fue aprobado y los artículos ya están reservados en el inventario. Sin embargo, el transportista automático no está respondiendo. Este caso requiere que vayas al módulo de <strong>Envíos</strong> para realizar una <strong>Asignación Manual</strong>.
                                 </div>
                             )}
 

@@ -9,7 +9,7 @@ export const orderService = {
         if (!orderNumber?.trim()) throw new Error("El número de orden es obligatorio");
         return await orderApi.getByNumber(orderNumber.trim(), getRequiredAuthorizationHeader());
     },
-    createNewOrder: async ({ customerName, customerEmail, shippingAddress, lines }) => {
+    createNewOrder: async ({ customerName, customerEmail, shippingAddress, lines, usePoints = false, pointsToUse = 0 }) => {
         const cleanName = customerName?.trim();
         const cleanEmail = customerEmail?.trim();
         const cleanAddress = shippingAddress?.trim();
@@ -34,7 +34,10 @@ export const orderService = {
             customerName: cleanName,
             customerEmail: cleanEmail,
             shippingAddress: cleanAddress,
-            lines: validLines
+            lines: validLines,
+            // ── LogixPoints ──
+            usePoints: Boolean(usePoints),
+            pointsToUse: Number(pointsToUse),
         }, getRequiredAuthorizationHeader());
     }
 };
