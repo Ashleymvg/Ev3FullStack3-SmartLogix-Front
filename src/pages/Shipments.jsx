@@ -67,24 +67,54 @@ function ShipmentsPage() {
         } catch (err) { alert("Error al actualizar estado: " + err.message); }
     }
 
+    // NUEVA LÓGICA: Calcula las unidades totales automáticamente al seleccionar una orden
+    const handleOrderSelection = (e) => {
+        const selectedOrderNum = e.target.value;
+        if (!selectedOrderNum) {
+            setManualForm({ orderNumber: "", destinationAddress: "", totalUnits: 1 });
+            return;
+        }
+
+        // Buscamos la orden seleccionada en nuestra lista de órdenes cargada
+        const orderDetail = orders.find(o => o.orderNumber === selectedOrderNum);
+        
+        let calcUnits = 1;
+        if (orderDetail && orderDetail.lines) {
+            calcUnits = orderDetail.lines.reduce((acc, line) => acc + line.quantity, 0);
+        }
+
+        setManualForm({
+            ...manualForm,
+            orderNumber: selectedOrderNum,
+            destinationAddress: orderDetail?.shippingAddress || "",
+            totalUnits: calcUnits
+        });
+    };
+
     if (loading && shipments.length === 0) return <h3>Cargando módulo de envíos y logística...</h3>;
     if (error) return <h3 style={{color: 'red'}}>Error: {error}</h3>;
 
     return (
-        <main style={{ display: 'flex', gap: '20px' }}>
-            <section style={{ flex: 1.1, display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
+        <main style={{ display: 'flex', gap: '20px', width: '100%', boxSizing: 'border-box' }}>
+            {/* PANEL IZQUIERDO */}
+            <section style={{ flex: '1 1 55%', minWidth: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
                 <div style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '20px', backgroundColor: '#fff' }}>
                     <h2 style={{ color: '#111111', marginTop: 0, marginBottom: '5px' }}>Asignación Manual de Envío</h2>
                     <p style={{ fontSize: '13px', color: 'gray' }}>Ideal para procesar pedidos que quedaron huérfanos o con asignación automática FAILED en el backend.</p>
                     <form onSubmit={handleCreateManual} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '15px' }}>
-                        <select value={manualForm.orderNumber} onChange={(e) => setManualForm({...manualForm, orderNumber: e.target.value})} required style={{padding: '8px'}}>
+                        
+                        <select value={manualForm.orderNumber} onChange={handleOrderSelection} required style={{padding: '8px'}}>
                             <option value="">-- Selecciona Pedido --</option>
                             {orders.map(o => (
                                 <option key={o.orderNumber} value={o.orderNumber}>{o.orderNumber} ({o.status})</option>
                             ))}
                         </select>
+                        
                         <input placeholder="Dirección de Destino" value={manualForm.destinationAddress} onChange={(e) => setManualForm({...manualForm, destinationAddress: e.target.value})} required style={{padding: '8px'}} />
+                        
+                        {/* EL INPUT DE UNIDADES SE LLENA SOLO, PERO AÚN SE PUEDE EDITAR SI ES NECESARIO */}
                         <input type="number" placeholder="Unidades Totales" min="1" value={manualForm.totalUnits} onChange={(e) => setManualForm({...manualForm, totalUnits: e.target.value})} required style={{padding: '8px'}} />
+                        
                         <button type="submit" style={{ backgroundColor: '#28a745', color: '#fff', cursor: 'pointer', border: 'none', padding: '10px', borderRadius: '4px' }}>Asignar e Iniciar Ruta</button>
                     </form>
                     {formMessage && <p style={{ fontWeight: 'bold', marginTop: '10px', color: '#28a745' }}>{formMessage}</p>}
@@ -103,7 +133,8 @@ function ShipmentsPage() {
                 </div>
             </section>
 
-            <section style={{ flex: 0.9, border: '1px solid #ddd', borderRadius: '8px', padding: '20px', backgroundColor: '#fafafa', textAlign: 'left' }}>
+            {/* PANEL DERECHO */}
+            <section style={{ flex: '1 1 45%', minWidth: 0, boxSizing: 'border-box', border: '1px solid #ddd', borderRadius: '8px', padding: '20px', backgroundColor: '#fafafa', textAlign: 'left' }}>
                 {!selectedShipment ? (
                     <div style={{ textAlign: 'center', color: 'gray', marginTop: '100px' }}>
                         <h3>Selecciona un envío</h3>

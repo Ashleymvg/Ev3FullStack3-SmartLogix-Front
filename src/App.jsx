@@ -91,7 +91,7 @@ function App() {
       }}>
 
         {/* SIDEBAR con fondo semi-transparente y blur para legibilidad */}
-        <aside style={{ width: '250px', padding: '20px', borderRight: '1px solid rgba(192, 132, 252, 0.3)', textAlign: 'left' }}>
+        <aside style={{ width: '180px', padding: '20px', borderRight: '1px solid rgba(192, 132, 252, 0.3)', textAlign: 'left' }}>
           <h2 style={{color: '#c084fc', fontSize: '32px', margin: '0 0 10px 0'}}>SmartLogix</h2>
           <p style={{color: '#e5e4e7'}}>Hola, <strong style={{color: '#c084fc'}}>{currentUser?.username}</strong></p>
           <p style={{fontSize: '12px', color: '#a0a0a0', marginBottom: '30px'}}>{currentUser?.role}</p>

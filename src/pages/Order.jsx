@@ -49,9 +49,23 @@ function OrderPage() {
     }
 
     function handleLineChange(index, field, value) {
-        const newLines = form.lines.map((line, i) => i === index ? { ...line, [field]: value } : line);
-        setForm({ ...form, lines: newLines });
-    }
+    const newLines = form.lines.map((line, i) => {
+        if (i === index) {
+            if (field === "sku") {
+                // Buscamos el ítem seleccionado en la lista cargada de inventario
+                const selectedProduct = inventory.find(item => item.sku === value);
+                return { 
+                    ...line, 
+                    sku: value, 
+                    unitPrice: selectedProduct ? selectedProduct.price : 0 
+                };
+            }
+            return { ...line, [field]: value };
+        }
+        return line;
+    });
+    setForm({ ...form, lines: newLines });
+}
 
     function addLine() { setForm({ ...form, lines: [...form.lines, { sku: "", quantity: 1, unitPrice: 0 }] }); }
     function removeLine(index) { setForm({ ...form, lines: form.lines.filter((_, i) => i !== index) }); }
@@ -73,7 +87,7 @@ function OrderPage() {
 
     return (
         <main style={{ display: 'flex', gap: '20px', width: '100%', boxSizing: 'border-box' }}>
-            {/* PANEL IZQUIERDO: Exactamente 45% del espacio */}
+            {/* PANEL IZQUIERDO */}
             <section style={{ flex: '1 1 45%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '20px', boxSizing: 'border-box' }}>
                 <div style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '15px', backgroundColor: '#fff', textAlign: 'left' }}>
                     <h2 style={{ color: '#111111', marginTop: 0, marginBottom: '15px' }}>Crear Nuevo Pedido</h2>
@@ -92,7 +106,7 @@ function OrderPage() {
                                     ))}
                                 </select>
                                 <input type="number" placeholder="Cant" min="1" value={line.quantity} onChange={(e) => handleLineChange(index, "quantity", e.target.value)} style={{ width: '60px', padding: '8px' }} required />
-                                <input type="number" placeholder="Precio" min="0" value={line.unitPrice} onChange={(e) => handleLineChange(index, "unitPrice", e.target.value)} style={{ width: '80px', padding: '8px' }} required />
+                                <input type="text" placeholder="Precio" value={line.unitPrice ? `$${Number(line.unitPrice).toLocaleString()}` : ""} readOnly style={{ width: '100px', padding: '8px', backgroundColor: '#e9ecef', color: '#495057', border: '1px solid #ced4da', borderRadius: '4px',cursor: 'not-allowed',fontWeight: 'bold'}} required />
                                 <button type="button" onClick={() => removeLine(index)} disabled={form.lines.length === 1} style={{ backgroundColor: '#dc3545', color: '#fff', padding: '8px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>X</button>
                             </div>
                         ))}
@@ -123,7 +137,7 @@ function OrderPage() {
                 </div>
             </section>
 
-            {/* PANEL DERECHO (DETALLE): Exactamente 55% del espacio (más ancho) y no se sale de la pantalla */}
+            {/* PANEL DERECHO  */}
             <section style={{ flex: '1 1 55%', minWidth: 0, border: '1px solid #ddd', borderRadius: '8px', padding: '25px', backgroundColor: '#fafafa', textAlign: 'left', boxSizing: 'border-box' }}>
                 {!selectedOrder ? (
                     <div style={{ textAlign: 'center', marginTop: '100px' }}>
