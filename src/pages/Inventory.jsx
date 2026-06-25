@@ -1,6 +1,30 @@
 import { useEffect, useState } from "react";
 import { inventoryService } from "../service/inventoryService";
 
+// Imagenes de los productos
+import imgTeclado from '../assets/TecladoMecanicoRGB.png';
+import imgMouse from '../assets/MouseInalambricoGatito.png';
+import imgMonitor from '../assets/Monitor24Pulgadas.png';
+import imgGabinete from '../assets/GabineteGamerRGB.png';
+import imgPastaT from '../assets/PastaTermica3g.png';
+import imgDisco from '../assets/DiscoDuroSSD1TB.png';
+import imgMemoria from '../assets/MemoriaRAM16GDDR4.png';
+import imgFuente from '../assets/FuentePoder650W.png';
+import imgGenerica from '../assets/DiseñoMicroservicios.png';
+
+// Diccionario para enlazar SKU con la imagen 
+const productImages = {
+    "SKU-1001": imgTeclado,
+    "SKU-2001": imgMouse,
+    "SKU-3001": imgMonitor,
+    "SKU-4001": imgGabinete,
+    "SKU-5001": imgPastaT,
+    "SKU-6001": imgDisco,
+    "SKU-7001": imgMemoria,
+    "SKU-8001": imgFuente,
+    "SKU-9001": imgGenerica,
+};
+
 function InventoryPage() {
     const [inventory, setInventory] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
@@ -111,13 +135,40 @@ function InventoryPage() {
                     <div>
                         <h2 style={{ color: '#111111' }}>Detalle del Producto</h2>
                         <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #ccc', color: '#3d2b5e', fontSize: '16px', lineHeight: '1.6' }}>
+
+                           {/* Caja para las imagenes */}
+                            <div style={{ 
+                                textAlign: 'center', 
+                                marginBottom: '20px', 
+                                width: '100%', 
+                                height: '320px', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                backgroundColor: '#f8f9fa', 
+                                borderRadius: '8px' }}>
+                                <img 
+
+                                // Busca la imagen por SKU, si no la encuentra, usa la imgGenerica
+                                src={productImages[selectedItem.sku]} 
+                                alt={selectedItem.productName} 
+                                style={{ 
+                                    maxWidth: '100%', 
+                                    maxHeight: '100%', 
+                                    objectFit: 'contain' 
+                                }} 
+                            />
+                        </div> 
+
                             <p><strong>SKU:</strong> {selectedItem.sku}</p>
                             <p><strong>Nombre:</strong> {selectedItem.productName}</p>
                             <p><strong>Bodega:</strong> {selectedItem.warehouseCode}</p>
                             <p><strong>Stock Disponible:</strong> <span style={{color: 'green', fontWeight: 'bold'}}>{selectedItem.availableQuantity}</span></p>
                             <p><strong>Stock Reservado:</strong> <span style={{color: 'orange', fontWeight: 'bold'}}>{selectedItem.reservedQuantity}</span></p>
                             <p><strong>Punto de Reorden:</strong> {selectedItem.reorderLevel}</p>
-                            <p style={{fontSize: '13px', color: 'gray', marginTop: '10px'}}>Última act: {new Date(selectedItem.updatedAt).toLocaleString()}</p>
+                            <p style={{fontSize: '12px', color: '#a0a0a0', marginTop: '10px'}}>
+                                Última actualización: {new Date(selectedItem.updatedAt).toLocaleString()}
+                            </p>
                         </div>
 
                         <h3 style={{ marginTop: '20px', color: '#111111' }}>Operaciones Manuales</h3>
