@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { orderService } from "../service/orderService";
 import { inventoryService } from "../service/inventoryService";
 import { usePoints } from "../hooks/usePoints";
+import AddressMap from "../components/AddressMap";
 
 function OrderPage() {
     const [orders, setOrders] = useState([]);
@@ -109,6 +110,7 @@ function OrderPage() {
     if (error) return <h3 style={{color: 'red'}}>Error: {error}</h3>;
 
     return (
+        <>
         <main style={{ display: 'flex', gap: '20px', width: '100%', boxSizing: 'border-box' }}>
             {/* PANEL IZQUIERDO */}
             <section style={{ flex: '1 1 45%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '20px', boxSizing: 'border-box' }}>
@@ -265,6 +267,12 @@ function OrderPage() {
                 )}
             </section>
         </main>
+
+        {/* MAPA PARA SELECCIONAR DIRECCIÓN DE ENVÍO */}
+        <div style={{ width: '100%', marginTop: '20px', boxSizing: 'border-box' }}>
+            <AddressMap onSelectAddress={(address) => setForm((prev) => ({ ...prev, shippingAddress: address }))} />
+        </div>
+        </>
     );
 }
 
