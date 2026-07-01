@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { shipmentService } from "../service/shipmentService";
 import { orderService } from "../service/orderService";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable'; // <-- IMPORTACIÓN CORREGIDA
 
 function ShipmentsPage() {
     const [shipments, setShipments] = useState([]);
@@ -46,11 +48,87 @@ function ShipmentsPage() {
         } catch (err) { alert("Error al cargar el envío: " + err.message); }
     }
 
+    // NUEVA LÓGICA: Generación del PDF (Corregida)
+    const generarBoletaPDF = (orden, datosLogistica) => {
+        const doc = new jsPDF();
+
+        // 1. Título
+        doc.setTextColor(180, 100, 255); 
+        doc.setFontSize(18);
+        doc.text('SmartLogix - Boleta de Despacho', 14, 20);
+        
+        doc.setTextColor(100, 100, 100);
+        doc.setFontSize(10);
+        doc.text(`Fecha de Emisión: ${new Date().toLocaleDateString()}`, 14, 28);
+
+        // 2. Datos del Cliente
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(12);
+        doc.text('Datos del Cliente', 14, 40);
+        doc.setFontSize(10);
+        doc.text(`Nombre: ${orden.customerName || 'No registrado'}`, 14, 48);
+        doc.text(`Email: ${orden.customerEmail || 'No registrado'}`, 14, 54);
+        doc.text(`Dirección: ${datosLogistica.destinationAddress || 'No registrada'}`, 14, 60);
+
+        // 3. Datos de Logística
+        doc.setFontSize(12);
+        doc.text('Hoja de Ruta y Logística', 110, 40);
+        doc.setFontSize(10);
+        doc.text(`Orden Origen: ${orden.orderNumber}`, 110, 48);
+        doc.text(`Tracking: Generado Post-Asignación`, 110, 54); 
+        doc.text(`Transportista: Asignación Manual`, 110, 60);
+
+        // 4. Tabla de Productos
+        const tableData = orden.lines ? orden.lines.map(line => [
+            line.sku || 'N/A',
+            line.quantity || 0,
+            `$${line.unitPrice || 0}`,
+            `$${(line.quantity || 0) * (line.unitPrice || 0)}`
+        ]) : [];
+
+        // <-- USO CORREGIDO DE AUTOTABLE
+        autoTable(doc, {
+            startY: 75,
+            head: [['SKU Producto', 'Cant', 'Precio Unit.', 'Subtotal']],
+            body: tableData,
+            headStyles: { fillColor: [43, 20, 60] }, 
+        });
+
+        // 5. Totales
+        const finalY = doc.lastAutoTable.finalY + 10;
+        
+        doc.setFontSize(10);
+        doc.text(`Subtotal: $${orden.subtotal || 0}`, 140, finalY);
+        
+        doc.setTextColor(138, 43, 226);
+        doc.text(`LogixPoints Desc: -${orden.pointsRedeemed || 0}`, 140, finalY + 6);
+        
+        doc.setTextColor(40, 167, 69);
+        doc.text(`LogixPoints Wins: +${orden.pointsEarned || 0}`, 140, finalY + 12);
+        
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Total: $${orden.totalAmount || 0}`, 140, finalY + 20);
+
+        // 6. Descargar el archivo
+        doc.save(`Boleta_SmartLogix_${orden.orderNumber}.pdf`);
+    };
+
     async function handleCreateManual(e) {
         e.preventDefault();
         setFormMessage("Creando envío manual...");
         try {
             await shipmentService.createManualShipment(manualForm);
+            
+            // Buscamos los detalles completos de la orden
+            const orderDetail = orders.find(o => o.orderNumber === manualForm.orderNumber);
+            
+            // Generamos la boleta PDF 
+            if (orderDetail) {
+                generarBoletaPDF(orderDetail, manualForm);
+            }
+
             setFormMessage("¡Envío manual creado e inyectado con éxito!");
             setManualForm({ orderNumber: "", destinationAddress: "", totalUnits: 1 });
             await reloadData();
@@ -67,7 +145,6 @@ function ShipmentsPage() {
         } catch (err) { alert("Error al actualizar estado: " + err.message); }
     }
 
-    // NUEVA LÓGICA: Calcula las unidades totales automáticamente al seleccionar una orden
     const handleOrderSelection = (e) => {
         const selectedOrderNum = e.target.value;
         if (!selectedOrderNum) {
@@ -75,7 +152,6 @@ function ShipmentsPage() {
             return;
         }
 
-        // Buscamos la orden seleccionada en nuestra lista de órdenes cargada
         const orderDetail = orders.find(o => o.orderNumber === selectedOrderNum);
         
         let calcUnits = 1;
@@ -112,7 +188,6 @@ function ShipmentsPage() {
                         
                         <input placeholder="Dirección de Destino" value={manualForm.destinationAddress} onChange={(e) => setManualForm({...manualForm, destinationAddress: e.target.value})} required style={{padding: '8px'}} />
                         
-                        {/* EL INPUT DE UNIDADES SE LLENA SOLO, PERO AÚN SE PUEDE EDITAR SI ES NECESARIO */}
                         <input type="number" placeholder="Unidades Totales" min="1" value={manualForm.totalUnits} onChange={(e) => setManualForm({...manualForm, totalUnits: e.target.value})} required style={{padding: '8px'}} />
                         
                         <button type="submit" style={{ backgroundColor: '#28a745', color: '#fff', cursor: 'pointer', border: 'none', padding: '10px', borderRadius: '4px' }}>Asignar e Iniciar Ruta</button>

@@ -203,6 +203,15 @@ function OrderPage() {
                 ) : (
                     <div>
                         <h2 style={{ color: '#111111', marginTop: 0, textAlign: 'center', marginBottom: '20px' }}>Desglose de la Orden</h2>
+                        
+                        {/* DATOS DEL CLIENTE */}
+                        <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #eee', marginBottom: '20px', color: '#3d2b5e', fontSize: '15px' }}>
+                            <h3 style={{ marginTop: 0, marginBottom: '10px', color: '#111' }}>Datos del Cliente</h3>
+                            <p style={{ margin: '5px 0' }}><strong>Nombre:</strong> {selectedOrder.customerName || 'No registrado'}</p>
+                            <p style={{ margin: '5px 0' }}><strong>Email:</strong> {selectedOrder.customerEmail || 'No registrado'}</p>
+                            <p style={{ margin: '5px 0' }}><strong>Dirección:</strong> {selectedOrder.shippingAddress || 'No registrada'}</p>
+                        </div>
+
                         <div style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '8px', border: '1px solid #eee', lineHeight: '1.8', fontSize: '16px', color: '#3d2b5e', boxSizing: 'border-box' }}>
                             <p><strong>N° Orden:</strong> {selectedOrder.orderNumber}</p>
                             <p><strong>Estado:</strong> 
@@ -210,18 +219,6 @@ function OrderPage() {
                                     {selectedOrder.status === 'FAILED' ? 'PENDIENTE' : selectedOrder.status}
                                 </span>
                             </p>
-                            <p><strong>Total Facturado:</strong> ${Number(selectedOrder.totalAmount || 0).toLocaleString()}</p>
-
-                            {selectedOrder.pointsRedeemed > 0 && (
-                                <p style={{ color: '#7c3aed', fontWeight: '600' }}>
-                                    LogixPoints usados: -{selectedOrder.pointsRedeemed.toLocaleString('es-CL')} pts (descuento ${selectedOrder.pointsRedeemed.toLocaleString('es-CL')})
-                                </p>
-                            )}
-                            {selectedOrder.pointsEarned > 0 && (
-                                <p style={{ color: '#059669', fontWeight: '600' }}>
-                                    🎁 LogixPoints ganados: +{selectedOrder.pointsEarned.toLocaleString('es-CL')} pts
-                                </p>
-                            )}
                             
                             <p><strong>Código de Tracking:</strong> 
                                 {selectedOrder.trackingCode ? (
@@ -231,9 +228,12 @@ function OrderPage() {
                                 )}
                             </p>
 
+                            {/* MENSAJE LOGÍSTICO */}
                             {selectedOrder.status === 'FAILED' && (
-                                <div style={{ color: '#856404', background: '#fff3cd', border: '1px solid #ffeeba', padding: '15px', borderRadius: '6px', marginTop: '20px', fontSize: '14px', lineHeight: '1.6' }}>
-                                    💡 <strong>Flujo de Excepción Logística:</strong> El pedido fue aprobado y los artículos ya están reservados en el inventario. Sin embargo, el transportista automático no está respondiendo. Este caso requiere que vayas al módulo de <strong>Envíos</strong> para realizar una <strong>Asignación Manual</strong>.
+                                <div style={{ backgroundColor: '#fff3cd', padding: '10px', borderRadius: '5px', marginTop: '10px' }}>
+                                  <p style={{ margin: 0, color: '#856404' }}>
+                                    <strong>Tracking:</strong> Esperando asignación logística...
+                                  </p>
                                 </div>
                             )}
 
@@ -241,7 +241,7 @@ function OrderPage() {
                         </div>
 
                         <h3 style={{ marginTop: '25px', color: '#111111' }}>Productos Solicitados</h3>
-                        <div style={{ width: '100%', overflowX: 'auto' }}>
+                        <div style={{ width: '100%', overflowX: 'auto', marginBottom: '20px' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#fff', color: '#3d2b5e' }}>
                                 <thead>
                                     <tr style={{ backgroundColor: '#f1f1f1', textAlign: 'left' }}>
@@ -255,11 +255,34 @@ function OrderPage() {
                                         <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
                                             <td style={{ padding: '10px' }}>{l.sku}</td>
                                             <td style={{ padding: '10px' }}>{l.quantity}</td>
-                                            <td style={{ padding: '10px' }}>${Number(l.unitPrice).toLocaleString()}</td>
+                                            <td style={{ padding: '10px' }}>${Number(l.unitPrice).toLocaleString('es-CL')}</td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* RESUMEN FINANCIERO (SUBTOTAL, PUNTOS, TOTAL) */}
+                        <div style={{ textAlign: 'right', backgroundColor: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #eee' }}>
+                            <p style={{ color: 'black', margin: '5px 0', fontSize: '16px' }}>
+                                <strong>Subtotal:</strong> ${Number(selectedOrder.subtotal || 0).toLocaleString('es-CL')}
+                            </p>
+                            
+                            {selectedOrder.pointsRedeemed > 0 && (
+                                <p style={{ color: '#8a2be2', margin: '5px 0', fontSize: '15px' }}>
+                                    <strong>LogixPoints Desc:</strong> -{selectedOrder.pointsRedeemed.toLocaleString('es-CL')} pts
+                                </p>
+                            )}
+                            
+                            {selectedOrder.pointsEarned > 0 && (
+                                <p style={{ color: '#28a745', margin: '5px 0', fontSize: '15px' }}>
+                                    <strong>LogixPoints Win:</strong> +{selectedOrder.pointsEarned.toLocaleString('es-CL')} pts
+                                </p>
+                            )}
+                            
+                            <p style={{ color: 'black', fontSize: '18px', margin: '15px 0 0 0', paddingTop: '10px', borderTop: '1px solid #eee' }}>
+                                <strong>Total Final:</strong> ${Number(selectedOrder.totalAmount || 0).toLocaleString('es-CL')}
+                            </p>
                         </div>
                     </div>
                 )}
